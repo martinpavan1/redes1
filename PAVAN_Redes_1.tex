@@ -1,0 +1,105 @@
+\documentclass{article}
+
+% Language setting
+% Replace `english' with e.g. `spanish' to change the document language
+\usepackage[english]{babel}
+
+% Set page size and margins
+% Replace `letterpaper' with `a4paper' for UK/EU standard size
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+% Useful packages
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{float}
+
+\title{Introducción a Packet Tracer}
+\author{Martín Oscar Pavan }
+
+
+\begin{document}
+\maketitle
+
+%\begin{abstract}
+%Your abstract.
+%\end{abstract}
+
+\section{Cisco Packet Tracer}
+
+Cisco Packet Tracer es un software gratuito que nos permite simular equipos y configuraciones de red desde tu computadora sin la necesidad de disponer de equipos físicos. Aunque no reemplaza la experiencia con el hardware físico, otorga numerosas ventajas para el aprendizaje de redes, IoT y ciberseguridad. Cuenta con una interfaz 
+
+
+
+\section{Modos de operación}
+\subsection{Modo Físico}
+El Modo Físico nos otorga una visión real y posicionamiento de los dispositivos involucrados. Es como lo que nos encontraríamos si fuéramos personalmente al lugar en el que funciona el servidor/red.
+\subsection{Modo Lógico}
+El Modo Lógico nos permite un gran nivel de abstracción de la topología de la red, ignora el aspecto físico o tamaño de los dispositivos involucrados en el servidor/red, ofreciéndonos rapidez para probar y testear disposiciones convenientes.
+
+En la Figura \ref{fig:physicalvslogical} podemos ver claramente la diferencia descrita anteriormente entre el Modo Lógico y Modo Físico.
+
+\section{Dispositivos finales}
+Las características que comparten los dispositivos finales es que son manipulados directamente por el usuario, que gracias a su interfaz gráfica y conexiones de red(cableada o no), permiten el traspaso de datos y comunicación entre dispositivos. También, garantizsn la seguridad mediante firewalls así como una autenticación de usuarios que protege de accesos malintencionados.   
+\subsection{PC}
+Es un nodo dentro de la red, dónde el usuario puede acceder a recursos compartidos como archivos, aplicaciones y servicios. Se puede conectar a la red mediante Ethernet(cable) o mediante una Tarjeta de Red(inalámbrica/wifi). Una PC en una red puede acceder a los demás dispositivos y con los privilegios necesarios recibir/modificar datos tales como IPs, nombre de los dispositivos y demás configuraciones.
+
+\subsection{Laptop}
+Similar a una PC, con la ventaja que propociona versatilidad debido a su fácil portabilidad. Igual mencionado en la subsección anterior, se puede mediante Ethernet(cable) o inalámbricamente(wifi). Normalmente, al poder realizar lo mismo que la PC, se utilizan por usuarios que requieren movilidad y poder estar siempre sincronizados con el servidor.
+
+\subsection{Server}
+Un server es un dispositivo central en una red que proporciona los servicios a los "clientes" como PCs y Laptops. Pueden incluir almacenamiento de datos, gestión de usuarios con su debida autenticación, host de aplicaciones, correos electrónicos, etc.
+Son críticos para la infraestructura de una red debido a que gestionan el tráfico de la red, asegurando la disponibilidad y seguridad de los recursos compatidos. 
+\subsection{Printer}
+Una printer permite que múltiples usuarios envién trabajos de impresión desde su dispositivo a través de la red. Gracias a su conexión Ethernet o WiFi, puede ser gestionada por un servidor de impresión que administra las colas de trabajo y permisos de los usuarios. Tiene opciones de seguridad para proteger los documentos a imprimir.
+
+\begin{figure}
+\centering
+\includegraphics[width=.6\linewidth]{fisicovslogico.png}
+\caption{\label{fig:physicalvslogical}Comparación entre modo lógico y modo físico en Cisco Packet Tracer}
+\end{figure}
+
+\section{Dispositivos de red}
+Son componentes fundamentales en la infraestructura de cualquier red de computadoras, permiten la comunicación y el intercambio de datos entre los dispositivos y sistemas. Gestionan y direccionan el tráfico de red asegurando una transmisión de datos eficiente y protegiendo la integridad de la información. Garantizan la conectividad y el rendimiento óptimo de la red tanto en entornos domésticos como empresariales.
+\subsection{Router}
+Los routers son los encargados de recibir la conexión a la red y distribuirla entre los dispositivos conectados. Existen muchos modelos que poseen distintos firmwares y módulos de ampliación para proporcionar una amplia variedad de dispositivos para que se adecúen perfectamente a tu servidor.
+\subsection{Switch}
+Un switch es un dispositivo que se encarga de interconectar dos o más segmentos de la red. Permiten formar una red que se conoce como Red de Área Local(LAN), cuya conexión se realiza mediante cable Ethernet. 
+\subsection{HUB}
+Los hubs permiten conectar múltiples dispositivos consiguiendo que funcionen como un único segmento de red. Actúan como centralizadores de conexión de una red, conectando eléctricamente los puertos de entrada, compartiendo información para que todos los aparatos involucrados puedan acceder a ella.
+
+\section{Cableados}
+\subsection{Cable Consola}
+El cable Consola conecta la interfaz Serial/USB de una PC o Laptop a la interfaz de consola de un Router o Switch. Se utiliza para la configuración inicial, cambio de hostname y demás utilidades.
+\subsection{Cable Cruzado}
+El cable Cruzado o Cross-over se utiliza para conectar dispositivos que operan en la misma capa del modelo OSI; también se emplea en la conexión de dispositivos similares entre sí.
+\subsection{Cable Directo}
+El cable Directo o Straight-through se utiliza para conectar dispositivos que operan en distintas capas del modelo OSI; se utiliza para conectar dispositivos distintos entre sí. 
+\subsection{Cable USB}
+El cable USB conecta mediante la interfaz USB de los dispositivos y es utilizado tanto para acceder a la configuración de los equipos como para una conexión de red segura y directa cuando no es posible realizar una conexión de red estándar.
+
+
+\section{Conexión entre PCs}
+Para realizar una conexión entre PCs lo que necesitamos es 2 PCs y 1 cable cruzado, el cuál conectaremos en el puerto FastEthernet libre de cada PC para que estén correctamente conectadas.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=.3\linewidth]{connectedpcs.png}
+\caption{\label{fig:connectedpcs}Dos PCs conectadas mediante un cable cruzado.}
+\end{figure}
+
+Al realizar la conexión correspondiente, deberíamos visualizar un cable cruzado con triángulos verdes como en la Figura \ref{fig:connectedpcs} que suponen una conexión exitosa.
+
+Para verificar la conexión mediante la consola, debemos ingresar a la configuración de IP de cada una de las PC e ingresar una dirección. Por ejemplo: IP-PC5 = 192.168.222.2 / IP-PC6 = 192.168.222.1
+Luego, ingresamos al Comand Promt de la PC5 e ingresamos el comando ping 192.168.222.1 para verificar el envío de paquetes con la PC6.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{pcping.png}
+    \caption{Comando ping que acusa conexión perfecta debido a que no se perdió ningún paquete.}
+    \label{fig:pcping}
+\end{figure}
+
+\section{GitHub}
+Puedes encontrar publicado en \href{https://github.com/martinpavan1/redes1}{mi GitHub} este pdf llamado "PAVAN Redes 1.tex"
+\end{document}
