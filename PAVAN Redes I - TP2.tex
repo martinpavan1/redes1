@@ -1,0 +1,125 @@
+\documentclass{article}
+
+\usepackage[english]{babel}
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{listings}
+
+\title{Laboratorio 1 - Hubs}
+\author{Martín Oscar Pavan}
+
+\begin{document}
+\maketitle
+
+\section{Introducción}
+
+En el presente informe, se analizarán tres casos específicos de conexiones de red utilizando la herramienta de simulación Cisco Packet Tracer.
+Cada caso de estudio ha sido seleccionado para ilustrar diferentes aspectos de las conexiones de red en un entorno controlado. Estos aspectos incluyen, entre otros, la configuración de dispositivos de red, la resolución de problemas de conectividad, y el análisis del tráfico de red.
+
+\section{Conexión de dos dispositivos}
+Al realizar la conexión entre dos PCs, lo debemos realizar con un cable Cross-over debido a que se trata de dispositivos que trabajan en la misma capa OSI y poseen la misma naturaleza.
+
+Cuando realizamos dicha conexión, podemos observar triángulos verdes en el cable que indican que las NIC(Network Interface Card) están operativas.
+
+\subsection{Dirección física}
+Utilizando el comando \textbf{ipconfig /all} en el Command Prompt de la PC podemos visualizar que PC1 contiene sólo la dirección física y no posee una Dirección IP.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.5\linewidth]{ipconfig-all.png}
+\caption{\label{fig:ipconfig-all} PC1 todavía no posee \textit{IPv4 Address}}
+\end{figure}
+
+La línea \textit{Physical Address.................: 00D0.9763.2845} representa la MAC asignada por el fabricante; es única, privada y local. Para verificar podemos verificar que la otra PC posee una MAC diferente. Dicha dirección no nos permite la conexión con los demás dispositivos, para ello debemos asignarle una dirección IP a la PC.
+
+
+\subsection{Configuración de dirección IP}
+Si las PCs no están configuradas con DHCP(Dynamic Host Configuration Protocol) las direcciones IP no se van a asignar automáticamente, por lo tanto, debemos hacerlo por consola.
+\\\\
+Para realizar una asignación de IP, ingresamos en el Command Prompt de la PC1 el comando \textbf{ipconfig 192.168.0.1 255.255.255.0}. La primer dirección corresponde a la nueva dirección IPv4 de la PC y la siguiente a la máscara correspondiente. Realizamos el mismo procedimiento con las dos PCs utilizando la misma máscara y cambiando la dirección IPv4.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.5\linewidth]{ipv4.png}
+\caption{\label{fig:ipconfig-all} Nueva dirección IP asignada}
+\end{figure}
+
+Al tener las direcciones IP configuradas en cada PC, podemos realizar un PDU(envío de paquetes) o el comando \textbf{ping 192.68.0.2}(IP-PC2) en PC1 para verificar si la conexión con PC2 fue exitosa. De las dos formas vamos a recibir un mensaje de éxito.
+
+\subsection{Caché de conexiones}
+El comando \textbf{arp -a} se utiliza para mostrar la tabla ARP(Address Resolution Protocol) en la computadora dónde utilizamos la consola.
+Dicha tabla contiene la lista de las direcciones IP y sus direcciones físicas que el dispositivo ha aprendido recientemente en la red local.
+
+Al ejecutar el comando \textbf{arp -a} veremos una salida parecida a esta:
+\begin{lstlisting}
+  Internet Address      Physical Address      Type
+  192.168.0.2           0040.0bde.be99        dynamic
+\end{lstlisting}
+Básicamente, la salida indica que PC1 aprendió la dirección física de la PC2 y viceversa. Esta información está mantenida en una caché por eso se indica el tipo \textit{dynamic}.
+
+\subsection{Cambiamos PC2 por un Server}
+Esta arquitectura conocida como \textit{cliente-servidor}, utiliza el modo de conexión DHCP, por el cuál la asignación de las direcciones IP de los dispositivos es automática y está dada por dicho protocolo.
+\\\\
+Como comprobamos antes, si no realizamos ninguna acción, la caché de conexiones permanece vacía. Con una salida como esta al ejecutar \textbf{arp -a}:
+\begin{lstlisting}
+No ARP Entries Found
+\end{lstlisting}
+
+Con la ayuda del DNS(Domain Name System), que nos permite traducir las direcciones legibles por el humano a direcciones IP que entienda el servidor, podemos asignarle el dominio "www.cisco.pkt" a la dirección IP 192.168.0.100.
+\\\\
+Al ingresar al Web Browser de la PC, podemos acceder al dominio "www.cisco.pkt" el cuál generaría una conexión entre la PC y el Server. Por lo tanto, al ejecutar nuevamente el comando \textbf{arp -a} podemos observar dicha conexión en la caché.
+\begin{lstlisting}
+  Internet Address      Physical Address      Type
+  192.168.0.100         0002.17d4.871e        dynamic
+\end{lstlisting}
+
+
+\section{Extendiendo la Red}
+Por el momento solo analizamos conexiones entre 2 dispositivos, las cuáles no serían óptimas en grandes servidores teniendo la necesidad de interconectar muchos dispositivos a la misma red.
+\\\\
+Para ello, introducimos el uso del \textbf{HUB}, el cuál nos permite interconectar una red en LAN, ya que sólo trabaja en la capa física distribuyendo la señal entre todos los dispositivos.Al dominio de todos los dispositivos interconectados por un Hub se le denomina dominio de colisión. 
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.4\linewidth]{3pcserver.png}
+\caption{\label{fig:3pcserver} 3 PCs conectadas a un Server a través de un Hub}
+\end{figure}
+
+Como vimos en la sección anterior, podemos verificar la conexión entre los dispositivos con el comando \textbf{ping {IP}} o con \textbf{Add Simple PDU}. También, al ingresar a un dominio en el Web Browser, se almacenaría la conexión en la caché entre el Server y la PC.
+\\\\
+Para obtener una tabla con todas las IP y MAC de cada dispositivo basta con utilizar los métodos de verificación de conexión desde un dispositivo de la red hacia todos los demás. Al realizarse la verificación exitosa de cada uno de los dispositivos, obtendremos una tabla parecida a esta al ejecutar el comando \textbf{arp -a} en la PC1:
+\begin{lstlisting}
+  Internet Address      Physical Address      Type
+  192.168.0.2           0010.1183.9b19        dynamic
+  192.168.0.4           00d0.ff57.95ea        dynamic
+  192.168.0.100         0002.17d4.871e        dynamic
+\end{lstlisting}
+Si estaríamos interconectando las PCs con un Switch, un dispositivo de interconexión más sofisticado, podríamos obtener las IP y MAC de cada dispositivo directamente desde las configuraciones del Switch.
+
+
+\section{Dominios de colisión}
+El problema de la utilización de los HUBS, son los dominios de colisión. Al ser un dispositivo que recibe una señal y la distribuye con todos los demás aparatos de la red, cuando necesitemos realizar mas de un envío el mismo tiempo posiblemente ocurrirá una colisión.
+\\\\
+Una colisión de dos o mas mensajes hace que los mensajes se mezclen y por lo tanto se vuelvan ilegibles o inservibles. Por lo tanto, ocurre una pérdida de tiempo y recursos. 
+Es una situación que se da permanentemente cuando se producen coincidencias temporales, el protocolo Ethernet posee un algoritmo para determinar cuando y como reenviar los mensajes perdidos, pero genera que el ancho de banda útil de la red se vea afectado por los reenvíos.
+Este problema empeora a medida que haya más estaciones conectadas o hubs en cascada.
+\\\\
+Para contextualizar la gravedad del problema, planteamos el siguiente escenario:
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{multiplehubs.png}
+    \caption{Escenario posible de la red de una empresa.}
+    \label{fig:multiplehubs}
+\end{figure}
+Acá estamos frente a un único gran dominio de colisión, debido a que cada hub no segmenta los dominios de colisión, sino que los amplía y crea un gran dominio de colisión que afecta a todos los dispositivos que estén conectados.
+\\\\
+Imagínate que tú estas trabajando en la PC11 y necesitas enviar un documento para imprimir a la Printer1.. Paralelamente, otra persona en la PC12 necesita imprimir otro documento.. Al mismo tiempo, la persona de la PC13 está recibiendo paquetes desde Server1... y así todas las situaciones que te puedas imaginar.
+\\\\
+Si no hay un buen protocolo que gestione las transacciones, colas de prioridad y envío, las colisiones pueden provocar tardanzas grandes en la transmisión de información dentro de la red.
+
+\section{GitHub}
+Puedes encontrar publicado en \href{https://github.com/martinpavan1/redes1}{mi GitHub} este pdf llamado PAVAN Redes I - TP2.
+
+\end{document}
