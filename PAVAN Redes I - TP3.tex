@@ -1,0 +1,134 @@
+\documentclass{article}
+
+\usepackage[english]{babel}
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{listings}
+
+
+\title{Laboratorio 3 - Switches}
+\author{Martín Oscar Pavan}
+
+\begin{document}
+\maketitle
+
+\section{Introducción}
+Un switch es un dispositivo de interconexión que opera en la capa 2 del modelo OSI, aunque algunos también pueden operar en la capa 3.
+\\\\
+Su principal función es recibir tramas de datos y reenviarlas únicamente al puerto de destino correcto, en lugar de enviar la información a todos los dispositivos conectados, como lo hace un hub.
+\\
+Esto mejora la eficiencia y seguridad en la red, ya que reduce las colisiones y optimiza el uso del ancho de banda.
+
+\section{Dispositivos activos}
+En principio, al realizar el envío de datos desde la PC11 y la PC21 usando Printer1 y Printer2 respectivamente. Por más que uno de los envíos se realice con un retraso respecto del otro, en el modo visualización podemos verificar la cantidad de colisiones que se generan.
+\\\\
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.6\linewidth]{3hubs.png}
+\caption{\label{fig:3pcserver} Un solo gran dominio de colisión.}
+\end{figure}
+
+Al cambiar el Hub0 por un Switch, los PDU de un color no se propagan fuera del dominio de colisión debido a que por más que le llega la trama correctamente al Switch, este no propaga dicha trama a todos los dispositivos conectados. Por lo tanto, dicho Switch esta segmentando el dominio de colisión que se había formado interconectando los 3 Hubs.
+\\\\
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.6\linewidth]{switch.png}
+\caption{\label{fig:3pcserver} 8 dominios de colisión}
+\end{figure}
+
+Acá podemos ver todos los dispositivos de la red conectados a un único switch, la particularidad de esta conexión con un Switch respecto a la misma con un Hub es que hay 8 dominios de colisión, uno por cada puerto del Switch. \\  
+Quiere decir que las tramas que le lleguen al Switch, van a ser enviadas solamente al puerto de destino correcto. Esto provoca que, si 2 tramas deben ser enviadas al mismo tiempo al mismo puerto, genere una colisión.
+
+\section{El protocolo ARP}
+El protocolo de red ARP opera en la capa de enlace de datos y se utiliza para asociar una dirección IP con una dirección MAC dentro de una red local (LAN). Cuando un dispositivo necesita comunicarse con otro en la misma red, envía una solicitud ARP para conocer la dirección MAC correspondiente a la dirección IP de destino.
+
+\begin{lstlisting}
+MAC Address de todos los dispositivos interconectados
+                           
+                    PC11 -> 0004.9AED.E15B
+                    PC12 -> 000D.BD96.B915
+                    PC13 -> 0010.114D.79D9
+                    PC21 -> 0001.96DA.9132
+                    Printer1 -> 0001.6394.A11E
+                    Printer2 -> 00D0.FFED.0B5A
+                    Server1 -> 00E0.F9A9.3157
+                    Server2 -> 0000.0C11.2106
+\end{lstlisting}
+Podemos ver como funcionan los Switch y el protocolo ARP investigando los PDU que envía el comando \textbf{ping -n 1 192.168.1.12} en el Command Propmt de la PC11, el cuál se encarga de mandar un paquete ARP para verificar la conexión entre las PCs.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{ida.png}
+    \caption{PDU envío desde PC11 a Switch}
+    \label{fig:enter-label}
+\end{figure}
+En dicha figura podemos observar como le llega la info en "In layers" al Switch con toda la información y la IP del puerto de destino.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{vuelta.png}
+    \caption{PDU regreso desde PC12 a Switch}
+    \label{fig:enter-label}
+\end{figure}
+En esta figura podemos observar el PDU de regreso desde la PC12 a Switch, en el cuál podemos observar el mismo comportamiento como en la ida. 
+\\\\
+Al terminar el envío, verificamos la caché de conexiones con \textbf{arp -a} en la PC11, y vamos a tener la IP y Dirección física de la PC12.
+\\\\
+\textbf{Análisis del PDU a nivel Ethernet}
+\begin{lstlisting}
+Destination Address: FFFF.FFFF.FFFF (broadcast)
+Source Address: 0004.9AED.E15B (PC11
+Type: 0x0806 (ARP)
+\end{lstlisting}
+\textbf{Análisis del PDU a nivel ARP}
+\begin{lstlisting}
+Hardware Type: FFFF.FFFF.FFFF (broadcast)
+Protocol Type: 0004.9AED.E15B (PC11)
+Hardware Lenght: 0x06 bytes (MAC)
+Protocol Lenght: 0x04 bytes (IP)
+Opcode: 0x0001 (Request)
+Source MAC: 0004.9AED.E15B (PC11)
+Source IP: 192.168.1.11 (PC11)
+Target MAC: 0000.0000.0000 (unknow)
+Target IP: 192.168.1.12 (PC12)
+\end{lstlisting}
+
+\section{Switch learning}
+A medida que fluyen los datos y los paquetes \textit{learning}(PDU) el Switch se va modificando, aprendiendo dinámicamente las MAC Address y direcciones IP de cada uno de los dispositivos conectados a él.
+\\
+De ese modo, va llenando su tabla MAC Address, la cuál podemos ver del siguiente modo: luego de conectar un cable de consola desde una PC al Switch, podremos entrar en la Terminal(CLI en el Switch).
+\\\\
+Al ingresar, podemos ejecutar el comando \textbf{show mac address} el cuál muestra las conexiones que se han realizado. Se ve algo así:
+\begin{lstlisting}
+          Mac Address Table
+-------------------------------------------
+
+Vlan    Mac Address       Type        Ports
+----    -----------       --------    -----
+
+   1    0004.9aed.e15b    DYNAMIC     Fa0/1
+   1    0010.114d.79d9    DYNAMIC     Fa0/3
+\end{lstlisting}
+Como podemos ver, las asignaciones fueron de forma dinámica, pero no es la única forma de asignar puertos. También lo podemos hacer manualmente.
+\\
+Para ello, debemos entrar al modo \textbf{Priviledge EXEC} cpn el comando \textbf{enable}, el cuál nos permite ingresar al modo \textbf{Global Configuration} con el comando \textbf{configure terminal}.
+\\\\
+Cuando estemos en el modo de configuración, podemos ingresar el comando:\\ 
+\textbf{mac address-table static (mac addr) vlan 1 interface (ifname)}
+\\\\
+Que nos asignaría una MAC Address a la interfaz seleccionada de forma \textbf{estática}. La tabla se verá de esta forma: 
+\begin{lstlisting}
+          Mac Address Table
+-------------------------------------------
+
+Vlan    Mac Address       Type        Ports
+----    -----------       --------    -----
+
+   1    0004.9aed.e15b    DYNAMIC     Fa0/1
+   1    0010.114d.79d9    DYNAMIC     Fa0/3
+   1    0088.9aed.e15b    STATIC      Fa0/5
+\end{lstlisting}
+\section{GitHub}
+Puedes encontrar publicado en \href{https://github.com/martinpavan1/redes1}{mi GitHub} este pdf llamado PAVAN Redes I - TP3.
+
+\end{document}
