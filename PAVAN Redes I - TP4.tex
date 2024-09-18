@@ -1,0 +1,184 @@
+\documentclass{article}
+
+\usepackage[english]{babel}
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{listings}
+
+
+\title{Laboratorio 3 - Switches Administrables}
+\author{Martín Oscar Pavan}
+
+\begin{document}
+\maketitle
+
+\section{Introducción}
+Los switches administrables juegan un papel importante en las redes modernas. Además de cumplir con las prestaciones de un switch común, poseen un conjunto adicional de prestaciones que le permiten soportar mejoras del protocolo Ethernet 802.1 tales como STP, VLAN, Port Trunking y Port Agregation. 
+\section{Spanning Tree Protocol}
+El STP es un protocolo que previene una red de caminos redundantes o loops entre switches, previene que las tramas sean reenviadas infinitamente ya que sería una gran pérdida de recursos y rendimiento de la red.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{enablestp.png}
+    \caption{Esquema redundante de switches}
+    \label{fig:enter-label}
+\end{figure}
+Como podemos observar, gracias al STP, uno de los puertos está bloqueado para evitar el reenvío infinito e innecesario de tramas entre los switches.
+\\
+Esto lo realiza eligiendo un switch como root(maestro), dicha elección está dada por el Bridge ID, conformado por el Bridge Priority Number, System ID Extension y la direccion MAC Address. Este último se utiliza para "desempatar" si nos encontramos con prioridades iguales en todos los switches, ya que elige al swithc con la MAC Address mas baja.
+\\\\
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{shutdowneth.png}
+    \caption{Interfaz FastEthernet 0/2 del Switch2 apagada}
+    \label{fig:enter-label}
+\end{figure}
+Al apagar la interfaz FastEthernet 0/2 del Switch2, el protocolo STP libera el bloqueo que había en la interfaz FastEthernet 0/1 del Switch1, habilitando el envío correcto de las tramas. Si deshabilitamos todas las interfaces que llegan al Switch2, el protocolo STP realizará nuevamente la elección del Switch root calculando el Bridge ID comentado anteriormente.
+
+\subsection{Tormenta de broadcast}
+Para comprobar que sin el protocolo STP la red se vería muy perjudicada por los reenvíos infinitos de las tramas entre los Switches, podemos entrar a cada Switch y en el modo de configuracion global ejecutar los siguientes comandos:
+\begin{lstlisting}
+    Switch> enable
+    Switch# conf t
+    Switch(config)# no spanning-tree vlan <id_vlan> 
+\end{lstlisting}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{messageloop.png}
+    \caption{Envío infinito de mensajes}
+    \label{fig:enter-label}
+\end{figure}
+
+\section{Virtual LANs}
+Las VLANs permiten segmentar una red física en varias redes lógicas, mejorando la seguridad  y rendimiento, ya que no permite el envío de tramas entre las VLAN establecidas en una misma red. Tenemos un mejor control y administración del tráfico de la red.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{vlans.png}
+    \caption{Red dividida en 2 VLANs}
+    \label{fig:enter-labe}
+\end{figure}
+Una vez que tengamos configuradas las respectivas IP y Mask de las PCs, entramos a la interfaz CLI del Switch para realizar la creación y asignación de puertos.
+
+\begin{lstlisting}
+    Switch>enable
+    Switch#conf t
+    Switch(config)#vlan 2     
+    Switch(config-vlan)#name amarillo
+    Switch(config-vlan)#exit
+    Switch(config)#interface range FastEthernet 0/1-4
+    Switch(config-if-range)#switchport mode access
+    Switch(config-if-range)#switch access vlan 2
+\end{lstlisting}
+De esta manera, asignamos los puertos FastEthernet 0/1-4 para la VLAN 2. Repetimos para los puertos FastEthernet 0/5-8 para la VLAN 3.
+\\
+Comprobaremos que al realizar un envío dentro de cada VLAN, arrojará el resultado Successful, en cambio, si queremos realizar un envío de una VLAN a otra, arrojará Failed.
+
+\subsection{VLAN con más de un switch}
+Para esta prueba vamos a utilizar la misma configuración de IP y asignación de puertos a las VLANs, pero con la diferencia que vamos a realizarlo con 2 Switchs conectados entre si y conectados a las 2 VLANs
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{2switchvlan.png}
+    \caption{Red con dos VLAN y 2 Switch}
+    \label{fig:enter-label}
+\end{figure}
+Esta disposición es una solución muy práctica, pero no escala si tenemos varios switches y muchas VLAN, porque el número de conexiones se eleva sustancialmente. La principal razón por la que no sería viable en una red más grande es por el \textit{mode access} que solo permite a ese puerto transportar tramas de la VLAN a la que pertenece.
+\section{Port Trunking}
+El Port Trunking viene a otorgar una solución a la problemática de la disposición anterior. Debido a que con un puerto tipo \textit{trunk} las tramas enviadas son \textit{taggeadas} con la VLAN a la que pertenecen, por lo tanto un solo puerto puede transportar tramas de distintas VLAN.
+\\\\
+Primero comenzamos conectando un cable en los puertos gigabitEthernet 0/1 de cada Switch.
+\\
+Podemos ver algunos atributos importantes con el siguiente comando:
+\begin{lstlisting}
+    Switch#show interface gigabitEthernet 0/1 switchport
+\end{lstlisting}
+El \textbf{Modo Administrativo} indica como está configurado el puerto, en esta caso, el modo \textit{dynamic auto} indica que el puerto "negocia" si va a ser ub puerto \textit{access} o un puerto \textit{trunk}.
+\begin{lstlisting}
+    Administrative Mode: dynamic auto
+\end{lstlisting}
+El \textbf{Modo Operacional} indica como se está utilizando el puerto en el momento que se ejecutó el comando, en este caso, está en modo \textit{access} por lo que pertenece a una VLAN específica.
+\begin{lstlisting}
+    Operational Mode: static access
+\end{lstlisting}
+El \textbf{Modo Administrativo de Encapsulación de Trunking} determina el tipo de encapsulación para el tráfico del puerto en modo \textit{trunk}, en este caso, corresponde al protocolo IEEE 802.1Q que es el estándar para taggear el tráfico de VLANs.
+\begin{lstlisting}
+    Administrative Trunking Encapsulation: dot1q
+\end{lstlisting}
+\textbf{VLANs Permitidas} determina cuáles VLANs están habilitadas para enviarse a través del puerto \textit{trunk}, en este caso, todas están permitidas.
+\begin{lstlisting}
+    Trunking VLANs Enabled: All
+\end{lstlisting}
+\subsection{Configuración del Port Trunking}
+
+Una vez analizados los aspectos importantes, vamos a dar lugar a la configuración del puerto para que se convierta en un puerto \textit{trunk}.
+\\
+Comenzamos ingresando al Switch0, entrando al modo de configuración global y ejecutando el siguiente comando para configurar la interfaz gigabitEthernet:
+\begin{lstlisting}
+    Switch(config)#interface gigabitEthernet 0/1
+    Switch(config-if)#switchport mode dynamic desirable 
+\end{lstlisting}
+En modo \textit{dynamic desirable} quiere decir que negociará con el puerto destino para convertirse en un puerto \textit{trunk}. Si el puerto del otro extremo está configurado para permitir trunking, se convertirá también en un puerto \textit{trunk}.
+\\\\
+Para verificar la correcta configuración del puerto, en el Switch0 ejecutamos el siguiente comando:
+\begin{lstlisting}
+Switch0#show interfaces trunk
+Port        Mode         Encapsulation  Status        Native vlan
+Gig0/1      desirable    n-802.1q       trunking      1
+
+Port        Vlans allowed on trunk
+Gig0/1      1-1005
+
+Port        Vlans allowed and active in management domain
+Gig0/1      1,2,3
+
+Port        Vlans in spanning tree forwarding state and not pruned
+Gig0/1      none
+\end{lstlisting}
+Nos otorgará toda la información del puerto trunk, las VLANs permitidas, que tipo de encapsulación, el modo, etc.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{trunk.png}    
+    \caption{Esquema con \textit{port trunking}}
+    \label{fig:enter-label}
+\end{figure}
+Si deseamos filtrar el tráfico de una respectiva VLAN en nuestro puerto \textit{trunk}, debemos prohibir dicha VLAN en la configuración del puerto \textit{trunk}, se realiza con el siguiente comando:
+\begin{lstlisting}
+switchport trunk allowed vlan [all|none|add vlan-list|remove vlan-list| 
+except vlan-list]
+
+-
+\end{lstlisting}
+En nuestro escenario, para remover la VLAN verde debemos ejecutar el siguiente comando:
+\begin{lstlisting}
+Switch(config-if)#switchport trunk allowed vlan remove 3
+\end{lstlisting}
+Esto haría que las tramas provinientes de la VLAN3 VERDE queden descartadas y no puedan comunicarse entre switches.
+
+\section{Port Agregation}
+Existe una característica adicional del standartd IEEE 802.3ad que permite agregar puertos entre si con el fin de conseguir una mayor velocidad de transmisión y tolerancia a fallos, aumenta el ancho de banda.
+\\\\
+Para realizar esto, al escenario de la figura 6, solamente debemos agregar otra conexión gigabitEthernet(en modo trunk) entre los Switches y luego en uno de ellos configuraremos lo que se conoce como EtherChannel:
+\begin{lstlisting}
+Switch(config)#interface range gigabitEthernet 0/1-2
+Switch(config-if-range)#channel-group 1 mode active
+\end{lstlisting}
+En el otro extremo realizaremos lo mismo, pero cambiando el modo a \textit{passive}. Ambos dispositivos negociaran, verificaran que poseen las mismas VLAN y se encenderán en verde en señal de que están activos y funcionales.
+\\\\
+Para realizar las verificaciones correspondientes, podemos utilizar los comandos \textit{show} para constatar las configuraciones:
+\begin{lstlisting}
+Switch#show etherchannel summary
+Switch#show etherchannel port-channel
+\end{lstlisting}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{portagregation.png}
+    \caption{Esquema con Port Agregation}
+    \label{fig:enter-label}
+\end{figure}
+\section{GitHub}
+Puedes encontrar publicado en \href{https://github.com/martinpavan1/redes1}{mi GitHub} este pdf llamado PAVAN Redes I - TP4.
+
+\end{document}
