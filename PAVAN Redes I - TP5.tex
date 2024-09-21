@@ -1,0 +1,83 @@
+\documentclass{article}
+
+\usepackage[english]{babel}
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{listings}
+
+
+\title{Laboratorio 4 - Enlaces WAN}
+\author{Martín Oscar Pavan}
+
+\begin{document}
+\maketitle
+\section{Introducción}
+Una conexión \textbf{punto a punto} permite interconectar 2 nodos mediante un canal dedicado, en cambio, una red \textbf{multipunto} el canal de datos se puede utilizar para comunicarse con diversos nodos. En las redes WAN, los protocolos deben mantener la sincronización adecuada para que los extremos se comuniquen correctamente.
+\section{HDLC}
+El protocolo HDLC(\textit{High-level Data Link Control}) es un protocolo de enlace de datos orientado a bits, usado en enlaces series sincrónicos.
+\\Cisco desarrolló una versión propietaria \textbf{cHDLC} debido a que la versión estándar no soporta el transporte de múltiples protocolos en un mismo enlace. Esta versiín propietaria contiene un campo llamado \textit{protocol field} el cuál permite que un mismo enlace serial acomode distintos protocolos de la capa de red.
+\\\\
+Dicho protocolo es el default y se puede especificar su uso ejecutnado el siguiente comando:
+
+\begin{lstlisting}
+        Router(config-if)#encapsulation hdlc
+\end{lstlisting}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{routers.png}
+    \caption{2 Routers interconectados}
+    \label{fig:enter-label}
+\end{figure}
+En este escenario, nos encontramos una conexión serial entre dos routers en el cuál mediante el comando \textbf{show controller} verificaremos cuál es el extremo DCE(el encargado de proveer la señal de reloj) y cuál es el extremo DTE(encargado de recibir la señal de reloj). En nuestro caso, el extremo DCE es nuestro router1, por lo que vamos a configurar el reloj a 250000bps en modo \textit{interface} con el siguiente comando:
+\begin{lstlisting}
+    Router1(config-if)#clock rate 250000
+\end{lstlisting}
+También, podemos verificar que cada uno de los extremos tenga el protocolo correcto con el comando \textbf{show interfaces}.
+
+\subsection{La trama cHDLC}
+HDLC es un protocolo complejo definido mediante reglas de la norma ISO/IEC 7776:1995; pero cHDLC solo utiliza un subconjutno de ellas.
+\\\\
+Con la herramienta Wireshark, podemos observar el contenido de las tramas cHDLC del ping realizado entre los Routers de la Figura 1.
+\\Podemos observar que el campo \textit{address} de los mensajes ICMP(ping) es 0x0f, indicando que se trata de un mensaje \textit{unicast}. Si se tratara de un mensaje \textit{multicast} sería 0x8f.
+\\\\
+Las tramas \textit{multicast} transportan mensajes SLARP(Serial Line Address Resolution Protocol) y las tramas \textit{unicast} los mensajes ICMP(ping).
+\begin{itemize}
+    \item Un mensaje SLARP sirve para intercambiar información sobre la configuración de las interfaces seriales en routers, permite configurar la conexión.
+    \item La secuencia de los mensajes SLARP comienza con una solicitud \textit{request} que solicita información sobre el dispositivo adyacente. Luego, este último, genera un mensaje \textit{reply} que contiene la información solicitada. Por último, una vez establecida correctamente la conexión se envían periodicamente mensajes \textit{keepalive} que verifica que la conexión siga activa. 
+    \item Aproximadamente cada 10 segundos se realiza el envío del \textit{keepalive}.
+    \item El valor del campo \textit{protocol} de un mensaje SLARP es 0x8035
+    \item El valor del campo \textit{protocol} de un mensaje \textit{unicast} es 0x0800
+    \item La secuencia de los mensajes \textit{unicast} comienza con el envío de un \textit{Echo (ping) request} al otro dispositivo, este recibe el mensaje y responde con un \textit{Echo (ping) reply}. Este ida y vuelta permita verificar conectividad y latencia  entre los dispositivos.
+\end{itemize}
+
+\section{PPP}
+El protocolo cHDLC solo puede ser utilizado en enlaces punto a punto de dispositivos Cisco.
+\\Pero si intervienen otros dispositivos, conviene utilizar el protocolo PPP, cuál a diferencia de cHDLC nos otorga las siguientes características:
+\begin{itemize}
+    \item Autenticación mediante PPP, CHAP o EAP 
+    \item Comprensión de datos
+    \item Detección de errores
+    \item Soporte multipunto
+    \item Utilizado en redes bit o byte oriented
+\end{itemize}
+Utilizando el escenario de la figura 1, debemos utilziar el siguiente comando para que la interfaz utilice el protocolo PPP:
+\begin{lstlisting}
+    Router(config-if)#encapsulation ppp
+\end{lstlisting} 
+Verificamos que el protocolo cambio usando \textbf{show interfaces}. Ahora disponemos del protocolo LCP(Link Control Protocol) para establecimiento, configuración, negociación y testeo del enlace.
+\\Para este caso se utilizan protocolos PPP LCP, los cuales tienen una fuunción similar a SLARP en cHDLC.
+\\\\
+Vamos a ensayar una forma de autenticación llamada PAP(Password Authentication Protocol). Primeramente, en la configuracion del terminal, habilitamos la password con el comando \textbf{enable password -password-} y luego definiremos los usuarios que negociarán en cada interface:
+\begin{lstlisting}
+    R0(config)#username R1 password cisco1
+    R0(config)#interface serial 0/1/0
+    R0(config-if)#ppp authentication pap
+    R0(config-if)#ppp pap sent-username R0 password cisco0
+\end{lstlisting}
+De esta forma, desde R0 le estamos asignando el usuario y contraseña que R1 usará para autenticar a R0. Viceversa, puede realizarse la configración para establecer una conexión con el protocolo PPP y autenticación PAP.
+\section{GitHub}
+Puedes encontrar publicado en \href{https://github.com/martinpavan1/redes1}{mi GitHub} este pdf llamado PAVAN Redes I - TP5.
+
+\end{document}
