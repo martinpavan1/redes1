@@ -1,0 +1,144 @@
+\documentclass{article}
+
+\usepackage[english]{babel}
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{listings}
+
+
+\title{Laboratorio 5 - Tablas de Ruteo}
+\author{Martín Oscar Pavan}
+
+\begin{document}
+\maketitle
+\section{Introducción}
+Un router es un dispositivo fundamental en redes de datos que permite la interconexión de diferentes redes, como la LAN de una empresa/hogar y la red externa, como Internet.
+El ruteo básico permite que los datos viajen entre diferentes redes o segmentos de una red de manera eficiente.
+
+\section{Ruteo básico de host}
+\subsection{Configuración de host}
+Para realizar una correcta configuración en una LAN, necesitaremos una interfaz de red conectado al dispositivo, identificada tanto en capa 2(MAC) como en capa 3(IP).
+Pero, si necesitamos interconectar redes, implementamos routers y debemos realizar configuraciones adicionales en cada host.
+\\\\
+Dicha configuraciones constan de asignar el IP y máscara de la interfaz de los extremos del Router conectados a cada red.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{2redinter.png}
+    \caption{2 redes interconectadas.}
+    \label{fig:enter-label}
+\end{figure}
+
+Los comandos necesarios para configurar la IP de las interfaces conectadas a cada red especifica de la Figura 1 son:
+\begin{lstlisting}
+    Router0>enable
+ Router0#conf t
+ Router0(config)#interface gigabitEthernet 0/0
+ Router0(config-if)ip address 192.168.0.1 255.255.255.0
+ Router0(config-if)no sh
+ Router0(config-if)exit
+ Router0(config)#interface gigabitEthernet 0/1
+ Router0(config-if)ip address 192.168.1.1 255.255.255.0
+ Router0(config-if)no sh
+\end{lstlisting}
+De esta forma, las redes parecerían estar interconectadas, pero al realizar el envio del mensaje ICMP(ping), no sale desde el destinatario ya que no pertenece a la red del mismo. Para ello, debemos configurar el \textit{default gateway}*, el cuál nos permitirá enviar mensajes a dispositivos que no estén en mi misma red.
+\\\\
+**El \textit{default gateway} o puerta de enlace predeterminada, es un dispositivo de red(router) que actúa como punto de salida para enviar tráfico de red local hacia afuera de la red.
+\\\\
+\\\\
+\\\\
+El comando para configurar el \textit{default gateway} es:
+\begin{lstlisting}
+    PC0>ipconfig 192.168.0.2 255.255.255.0 192.168.0.1
+\end{lstlisting}
+Cuando ejecutamos el comando, definimos el default gateway para PC0, permitiendo que el ping salga. Pero, la configuracion debe ser bilateral, ya que ahora la PC1 no puede realizar el reply debido a que se encuentra en la misma situación inicial de PC0.
+
+\section{Los routers}
+\subsection{Forwarding vs Routing}
+Por default el \textit{forwarding} está habilitado en los routers Cisco. Es el proceso de mover un paquete de una interfaz de red a otra dentro de un router. Cuando un router recibe un paquete, analiza su dirección de destino, consulta su tabla de enrutamiento y elige a través de cuál de sus interfaces debe enviar el paquete para que avance hacia su destino.
+\\\\
+El routing es el proceso más amplio de determinar el camino o ruta que un paquete debe seguir para llegar a su destino final, puede ser estático o dinámico. Esto implica construir y mantener tablas de enrutamiento en cada router, usando algoritmos de enrutamiento. Los routers comparten información entre ellos para construir estas tablas y saber cuál es la mejor ruta hacia cada red posible.
+\\\\
+Podríamos decir que routing define el "mapa" o camino, mientras que forwarding es el movimiento concreto de los paquetes a través de esos caminos.
+
+\subsection{Static routing}
+Se trata de configurar estáticamente las entradas de la tabla de ruteo. Dichas rutas no se modifican si la red fue reconfigurada o modificada.
+\\\\
+\textbf{VENTAJAS:}
+\begin{itemize}
+    \item Causa muy poca carga en la CPU del router y no produce tráfico a otros routers. 
+    \item Deja al administrador de la red con el control total sobre el comportamiento de routing de
+ la red.
+ \item Es muy fácil de configurar en redes pequeñas.
+\end{itemize}
+\textbf{DESVENTAJAS:}
+\begin{itemize}
+    \item Las rutas estáticas se configuran manualmente, por lo tanto el error humano aumenta el potencial de errores de entrada.
+    \item No es tolerante a fallos.
+    \item Debido a que las rutas estáticas tienen baja distancia administrativa, suelen tener prioridad
+ sobre las rutas configuradas con un protocolo de routing dinámico.
+ \item  Costos de administración elevados.
+\end{itemize}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{2routers.png}
+    \caption{2 routers interconectados.}
+    \label{fig:enter-label}
+\end{figure}
+Al plantear un escenario mas complejo, debemos realizar las configuraciones antes mencionadas en cada router(IP-MASK-DG).
+\\\\
+Los pings entre (PC0-PC1) y (PC2-PC3) funcionan correctamente, pero el problema comienza al querer enviar tráfico entre routers, ya que no conocen las redes o dominios de broadcast interconectados al router vecino.
+\\\\
+Primero configuramos el clock rate en el router DCE y la interfaz serial que conecta los routers:
+\begin{lstlisting}
+    Router0(config)#interface serial 0/1/0
+ Router0(config-if)clock rate 4000000
+ Router0(config-if)ip address 192.168.5.2 255.255.255.252
+ Router0(config-if)no shutdown
+ Router0(config-if)exit
+\end{lstlisting}
+Se le asigna la máscara 255.255.255.252 ya que es común para conexiones punto a punto, ya que solo se necesita asignar una dirección IP a cada extremo.
+\\\\
+\\\\
+Para solucionar la configuracion entre routers, se configuran las rutas estáticamente con el comando:
+\begin{lstlisting}
+    Router0(config)#ip route 192.168.2.0 255.255.255.0 192.168.5.1
+    Router0(config)#ip route 192.168.3.0 255.255.255.0 192.168.5.1
+
+    Router1(config)#ip route 192.168.0.0 255.255.255.0 192.168.5.2
+    Router1(config)#ip route 192.168.1.0 255.255.255.0 192.168.5.2
+\end{lstlisting}
+En pocas palabras, configuramos en cada router las rutas para llegar a las redes que estan interconectadas en el router vecino.
+
+\subsection{Sumarización}
+La sumarización nos permite otorgarle el rango de redes conectadas al router que necesiten forwarding. Por ejemplo: si tenemos 50 redes conectadas a un router, deberiamos realizar la ruta de forwarding por cada red, por lo tanto deberiamos ingresar 50 rutas.
+\\\\
+Para la sumarizacion, se utiliza la ip de red mas chica,  y luego la mascara para determinar el rango de redes a forwardear, por lo tanto con un solo comando pudimos realizar la ruta de forward de 50 redes al mismo tiempo.
+\\\\
+El comando a utilizar en el ejemplo de la figura 2 es:
+\begin{lstlisting}
+    Router0(config)#ip route 192.168.2.0 255.255.254.0 192.168.5.1
+    Router1(config)#ip route 192.168.0.0 255.255.254.0 192.168.5.2
+\end{lstlisting}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{sumarizacion.png}
+    \caption{Router 1 y 2 con rutas sumarizadas}
+    \label{fig:enter-label}
+\end{figure}
+Siguiendo con la idea de simplificar vías y sumarizar, el default gateway predeterminado 0.0.0.0 0.0.0.0 serviría para este tipo de casos en los que hay un enlace punto a punto. En el caso de que haya mas routers, es conveniennte mantener una configuración de rutas detallada para que no haya problemas de tráfico de red.
+
+\subsection{Redes stub}
+Una red stub es aquella que tiene un solo punto de entrada y salida para todo el tráfico hacia redes externas. No tiene rutas alternativas, depende completamente de un único router para comunicarse con otras redes.
+\\
+Son comunes en configuraciones sencillas o redes de menor tamaño, donde no se requieren múltiples enlaces.
+\\
+Por ejemplo, en el escenario de la figura 2, tenemos 4 redes stubs debido a que cada uno tiene su default gateway propio y salida unitaria.
+
+\section{GitHub}
+Puedes encontrar publicado en \href{https://github.com/martinpavan1/redes1}{mi GitHub} este pdf llamado PAVAN Redes I - TP6.
+
+\end{document}
