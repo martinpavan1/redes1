@@ -1,0 +1,113 @@
+\documentclass{article}
+
+\usepackage[english]{babel}
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{listings}
+
+
+\title{Laboratorio 6 - Protocolo RIP}
+\author{Martín Oscar Pavan}
+
+\begin{document}
+\maketitle
+\section{Introducción}
+En redes de computadoras, la actualizacion manual de tablas de ruteo representa un desafio importante en términos de escalabilidad y fiabilidad. A medida que crece la topoloíga de la red, el proceso se vuelve más complejo y propenso a errores.
+\\\\
+Para resolver estos problemas, los protocolos de ruteo dinámico permiten a los dispositivos intercambiar información sobre la topología de la red y generar las tablas de ruteo automáticamente.
+\\\\
+Cuando estos protocolos se utilizan dentro de una área llamada AS (Autonomous system), se dice que el ruteo ocurre dentro de dicho dominio y a los mismos se los denomina IGP (Interior Gateway Protocol).
+Los IGP se clasifican en dos grandes categoras conocidas con el nombre de link state y vector distance. 
+\\\\
+Un ejemplo de este último es el protocolo llamado RIPv2.
+
+\section{Protocolo RIP}
+El protocolo RIP(Routing Information Protocol) es de tipo \textit{routing classless}(puede trabajar con redes no limitadas por las clases de IP/ Permite Sub/SuperNetting).
+\\\\
+Ningún router tiene toda la topolgía de la red completa, a medida que avanza el tiempo va conociendo como llegar a las demás redes. Esto hace que sea un protocolo mas simple, pero a su vez, mas escaso y tardío en cuanto a organización de tablas de ruteo.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{escenario1.png}
+    \caption{Escenario inicial.}
+    \label{fig:enter-label}
+\end{figure}
+Si queremos realizar un envío de \textit{ping} entre PCs nos daremos cuenta de que lso routers no poseen el conocimiento de las demas redes para podes comunicarlas.
+\\\\\\\\
+Para ello, procedemos a la configuración de RIP
+
+\begin{lstlisting}
+    r1#configureterminal
+    r1(config)#routerrip
+    r1(config-router)#network 100.1.0.0/16
+    r1(config-router)#redistribute connected
+    r1(config-router)#exit
+    r1(config)#exit
+    r1#writefile
+\end{lstlisting}
+
+     Activar RIP con el comando \textit{router rip}.\\
+     Declarar qué redes usar con el comando \textit{network} (ej.: \verb|100.1.0.0/16|).\\
+     Redistribuir redes conectadas con \textit{redistribute connected}.\\
+     Guardar la configuración con \textit{write file}.\\
+     Ver la ruta elegida \textit{trace route}. \\\\
+
+Luego de realizar las configuraciones, las tablas RIB pueden ser vistas con el comando:
+\begin{lstlisting}
+    r1# show ip route
+    Codes: K - kernel route, C - connected, S - static, R - RIP,
+    O - OSPF, I - IS-IS, B - BGP, P - PIM, A - Babel,
+    > - selected route, * - FIB route
+    C>* 100.1.0.0/30 is directly connected, eth2
+    R>* 100.1.0.4/30 [120/2] via 100.1.0.10, eth1, 00:00:13
+    C>* 100.1.0.8/30 is directly connected, eth1
+    C>* 100.1.0.12/30 is directly connected, eth0
+    R>* 100.1.0.16/30 [120/2] via 100.1.0.14, eth0, 00:00:13
+    C>* 100.1.1.0/24 is directly connected, eth3
+    R>* 100.1.2.0/24 [120/2] via 100.1.0.2, eth2, 00:00:13
+    R>* 100.1.3.0/24 [120/2] via 100.1.0.10, eth1, 00:00:13
+    R>* 100.1.4.0/24 [120/2] via 100.1.0.14, eth0, 00:00:13
+    R>* 100.2.0.0/30 [120/2] via 100.1.0.14, eth0, 00:00:13
+    C>* 127.0.0.0/8 is directly connected, lo
+\end{lstlisting}
+O, la tabla FIB del kernel:
+\begin{lstlisting}
+    root@r1:/# route -n
+    Kernel IP routing table
+    Destination Gateway Genmask Flags Metric Ref Use Iface
+    100.1.0.0 0.0.0.0 255.255.255.252 U 0 0 0 eth2
+    100.1.0.4 100.1.0.10 255.255.255.252 UG 20 0 0 eth1
+    100.1.0.8 0.0.0.0 255.255.255.252 U 0 0 0 eth1
+    100.1.0.12 0.0.0.0 255.255.255.252 U 0 0 0 eth0
+    100.1.0.16 100.1.0.14 255.255.255.252 UG 20 0 0 eth0
+    100.1.1.0 0.0.0.0 255.255.255.0 U 0 0 0 eth3
+    100.1.2.0 100.1.0.2 255.255.255.0 UG 20 0 0 eth2
+    100.1.3.0 100.1.0.10 255.255.255.0 UG 20 0 0 eth1   
+\end{lstlisting}
+\subsection{Propagando RIP}
+Al analizar la comunicación del protocolo, experimentaremos que ante un fallo de enlace debido a sus mensajes de actualización periódica, si bien el protocolo tiene la posibilidad de recuperarse, tarda mucho.
+\\
+Esto lo observamos con un sniffer, que nos permite observar los mensajes RIP enviados por los routers.
+\\
+La configuracion adecuada de los comandos network y redistribute connected permite la optimizacion del comportamiento de RIP, evitando el envío innecesario de actualizaciones. Para esto, se realiza un ajuste de máscaras de subred para controlar qué rutas se propagan.
+
+\subsection{RIP y las redes stub}
+En este caso se agrega una ruta estatica al router r5 , luego un ping y traceroute para comprobar que funciona. Ya que hay que garantizar que todas las redes puedan acceder al ISP y el r5 es el default gateway, configuramos que este mismo router propague dicho default hacia adentro usando el mismo protocolo RIP, en el escenario el router seleccionado para esto es el r4.
+con los comandos siguientes agregamos el default lo propagamos.
+\begin{lstlisting}
+    root@r4:/# route add default gw 100.2.0.2
+    root@r4:/# vtysh
+    r4# configure terminal
+    r4(config)# router rip
+    r4(config-router)# route 0.0.0.0/0
+    r4(config-router)# exit
+    r4(config)# exit
+    r4# quit
+\end{lstlisting}
+
+
+\section{GitHub}
+Puedes encontrar publicado en \href{https://github.com/martinpavan1/redes1}{mi GitHub} este pdf llamado PAVAN Redes I - TP7.
+
+\end{document}
