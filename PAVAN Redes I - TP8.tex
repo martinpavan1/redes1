@@ -1,0 +1,80 @@
+\documentclass{article}
+
+\usepackage[english]{babel}
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{listings}
+
+
+\title{Laboratorio 7 - Protocolo OSPF}
+\author{Martín Oscar Pavan}
+
+\begin{document}
+\maketitle
+\section{Introducción}
+
+OSPF (Open Shortest Path First) es un protocolo de enrutamiento de estado de enlace (link-state) que permite a los routers compartir información sobre la red y calcular las rutas más cortas. Cada router mantiene una copia de la LSDB(Link State DataBase), que contiene la topología completa de la red.
+
+Esta información se intercambia mediante anuncios llamados LSA (Link State Advertisements).
+
+\section{Protocolo OSPF}
+Es un protocolo de ruteo dinámico con reasignación automática a medida que la topología de la red es modificada. Elige a un router como director(DR) y un backup(BDR), por lo tanto, al "hablar" entre routers solo lo hacen a través del DR. Los paquetes enviados se llaman LSP(Link State Package) y dentro de esos paquetes estan los mensajes LSA(Link State Advertisements).
+\\\\
+Forman un arbol al que luego se le aplica el algoritmo de Dijkstra para obtener los caminos mas cortos hacia los dispositivos interconectados. Necesita el costo de cada interfaz, podemos obtenerlo con el comando \textit{show ip ospf interface -interfaz-}, también, modificar los costos de las interfaces para forzar caminos personalizados.
+\\\\
+Una buena solución a la escalabilidad es dividir la red en areas, ya que de esta forma si se modifica algo de un area no hay que cambiar el arbol completo, solamente se manda un mensaje especial.
+\\\\
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{escenario.png}
+    \caption{Escenario inicial}
+    \label{fig:enter-label}
+\end{figure}
+Al momento de realizar las configuraciones hay que asignarle un router ID a cada uno, bajo el criterio de octetos, al router 1 se le podria asignar el 1.1.1.1 y asi sucesivamente.
+
+
+\begin{lstlisting}
+    Router1> router ospf
+    Router1> network 100.0.0.0/16 area 0.0.0.0
+    Router1> redistribute connected
+    Router1> show ip ospf neighbor
+    Router1> show ip ospf interface eth2
+    Router1>show ip ospf database.
+\end{lstlisting}
+
+
+\section{La LSDB de OSPF}
+
+La LSDB (Link-State Database) es la base de datos de estado de enlace utilizada en protocolos de enrutamiento como OSPF.
+
+Esta base de datos almacena información detallada sobre la topología de la red, incluyendo routers, enlaces, segmentos de red y redes externas. Cada router que utiliza OSPF construye su propia LSDB basándose en los LSAs (Link-State Advertisements), que son mensajes intercambiados entre routers para compartir información sobre los enlaces y el estado de la red.
+
+\begin{lstlisting}
+    Router1>show ip ospf database router 100.0.1.1 
+    Router1>show ip ospf database
+    Router1>show ip ospf database network ID.
+\end{lstlisting}
+
+La salida se divide en tres partes principales:
+Router Link States: Muestra información de todos los routers conectados, con sus IDs.
+
+Net Link States: Lista todos los segmentos de red, donde el "Link ID" corresponde a la IP del DR (Designated Router) en cada segmento.
+
+AS External Link States: Incluye las redes externas conectadas directamente, como 100.3.0.0/30, que no forman parte del área OSPF.
+
+\section{La tabla de routing en OSPF}
+
+Cada entrada muestra el costo del enlace (entre corchetes) y las interfaces involucradas. Si los costos de las interfaces son iguales, se pueden usar varios caminos simultáneamente (ECMP). Cambiar los costos afecta en las rutas seleccionadas y su disponibilidad.
+
+\begin{lstlisting}
+    Router1>show ip ospf route
+\end{lstlisting}
+
+El numero indicado entre [ ] que representa el costo de la ruta.
+
+\section{GitHub}
+Puedes encontrar publicado en \href{https://github.com/martinpavan1/redes1}{mi GitHub} este pdf llamado PAVAN Redes I - TP8.
+
+\end{document}

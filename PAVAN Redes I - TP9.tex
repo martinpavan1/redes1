@@ -1,0 +1,86 @@
+\documentclass{article}
+
+\usepackage[english]{babel}
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{listings}
+
+
+\title{Laboratorio 8 - Ruteo Dinámico Interdominio}
+\author{Martín Oscar Pavan}
+
+\begin{document}
+\maketitle
+\section{Introducción al enrutamiento jerárquico}
+El ruteo jerárquico es fundamental para garantizar escalabilidad y eficiencia del tráfico de Internet. Debido a que no se puede manejar el número inmenso de rutas, se agrupan en routers en unidades llamadas \textbf{Sistemas Autónomos}. Todo AS tiene un identificador único denominado ASM(\textit{Autonomous System Number}). 
+El intercambio de rutas que se realiza entre los AS se lo denomina \textbf{Ruteo Jerárquico.}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{as.png}
+    \caption{Sistemas autónomos}
+    \label{fig:enter-label}
+\end{figure}
+
+\section{El protocolo BGP}
+El intercambio de rutas entre AS requiere un protocolo. El protoclo BGP(\textit{Border Gateway Protocol}) es el único protocolo del tipo EGP (\textit{External Gateway Protocol}) que se utiliza y pertenece a \textit{vector path.}
+
+\subsection{BGP Peering}
+Un concepto clave de BGP es el establecimiento de vecindad o peering, que requiere una sesión en capa 4 para la comunicación, lo que implica resolver previamente el alcance entre vecinos mediante otros protocolos de capas inferiores. Es importante destacar que esta vecindad no implica necesariamente el intercambio de rutas. BGP es un protocolo político, donde los administradores definen, mediante reglas específicas, qué rutas se anuncian.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{peering.png}
+    \caption{BGP Simple}
+    \label{fig:enter-label}
+\end{figure}
+Usando este último escenario configuramos así:
+\begin{lstlisting}
+R1(config)#router bgp 195
+R1(config-router)#neighbor 193.10.11.2 remote-as 200
+R2(config)#router bgp 200
+R2(config-router)#neighbor 193.10.11.1 remote-as 195
+R1# show ip bgp summary
+R1#show ip bgp neighbors 
+\end{lstlisting} 
+El comando \textit{router bgp} establece el ASN local y neighbor la vecindad con el ASN remoto o vecino.
+Para chequear el estado del peering usamos:
+\begin{lstlisting}
+R1# show ip bgp summary
+BGP router identifier 195.1.1.1, local AS number 195
+BGP table version is 1, main routing table version 6
+...
+Neighbor    V AS  MsgRcvd MsgSent TblVer InQ OutQ Up/Down State/PfxRcd
+193.10.11.2 4 200    36    36      1     0     0  00:34:09       4
+\end{lstlisting}
+
+\subsection{BGP Announcement}
+BGP no anuncia rutas de manera predeterminada, éstas deben ser configuradas. 
+Un concepto muy importante es que antes de abordar el anuncio de rutas es importante entender el concepto de dirección de tráfico de BGP.
+\\
+\textbf{El flujo de transmisión de datos va en la dirección contraria al fulo de anuncio de rutas como podemos ver en la siguiente imagen:}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{announcement.png}
+    \caption{Dirección de flujos}
+    \label{fig:enter-label}
+\end{figure}
+Para entender este concepto, configuramos el loopback device 2 en R1 con 195.11.14.1/24 y
+hagamos que R1 anuncie a R2 esta red:
+\begin{lstlisting}
+    R1(config)# router bgp 195
+    R1(config-router)# network 195.11.14.0 mask 255.255.255.0
+\end{lstlisting}
+Luego al chequear las tablas de ruteo de R1 y R2, solo la tabla de R2 se actualizó y por lo
+tanto si hacemos un ping usando un complex PDU desde el loopback device de R2 a 195.11.14.1
+veremos que las solicitudes llegan pero las respuestas no. Este problema es muy fácil de solucionar
+y le proponemos que usted modifique R2 y reflexione porque funciona todo correctamente usando
+el concepto de direcci´on de flujos BGP.
+
+\section{GitHub}
+Puedes encontrar publicado en \href{https://github.com/martinpavan1/redes1}{mi GitHub} este pdf llamado PAVAN Redes I - TP9.
+
+\end{document}
